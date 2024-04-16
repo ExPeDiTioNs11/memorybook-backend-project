@@ -16,6 +16,11 @@ const raffle_schema = mongoose.Schema({
         required: true
     },
 
+    randomCode: {
+        type: String,
+        required: true
+    },
+
     // tam ad ve soyadları
     fullname: {
         type: String,

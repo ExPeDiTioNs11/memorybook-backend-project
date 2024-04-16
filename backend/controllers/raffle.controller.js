@@ -8,9 +8,18 @@ const _hotels = require('../models/hotels.model');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
+// Nodemailer transporter oluştur
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: 'ebo.memorybook@gmail.com', // E-posta adresiniz
+        pass: 'okdf gtke fvtf sbih' // E-posta şifreniz
+    }
+});
+
 // yeni mail kaydet - kazanma şansları ile birlikte kaydet
 const createNewMail = asynchandler(async (req, res) => {
-    const {hotelid, mailadress, fullname, due } = req.body;
+    const { hotelid, mailadress, fullname, due } = req.body;
 
     try {
         if (!mailadress || !hotelid || !fullname) {
@@ -21,14 +30,53 @@ const createNewMail = asynchandler(async (req, res) => {
             });
         }
 
+        const randomCode = generateRandomCode(); // Rastgele kod oluştur
+
         const new_mail = await _raffle.create({
             hotelid,
-            mailadress, 
+            mailadress,
             fullname,
+            randomCode,
             due
         });
 
         if (new_mail) {
+            
+            const hotel = await _hotels.findById(req.body.hotelid);
+
+            const mailContent = `
+            Hello ${req.body.fullname},
+
+            Greetings from MemoryBook!
+
+            Your entry into our hotel review promotion was successful. Your valuable review for the hotel has been received through our app, and we're excited to share the details.
+
+            Your Entry Details:
+            Hotel : ${hotel.hotelName}
+            Your Unique Code: ${randomCode}
+
+            How Does the Entry Work?
+            By submitting your review through our app, you've earned a ticket for the chance to win a "2 People Holiday for a Week" at the end of the season. The more reviews you make, the higher your chances of winning this exciting prize!
+
+            Prize Pool Selection Period:
+            The prize pool selection period occurs at the end of each season. At this time, a random code will be selected, and the lucky participant associated with that code will be announced as the winner of the holiday getaway.
+
+            We want to thank you for your contribution to improving hotel experiences through your thoughtful reviews.
+
+            Should you have any questions or encounter any issues, please don't hesitate to reach out to us. Our dedicated support team is here to assist you.
+
+            Thank you for choosing MemoryBook for your hotel review experiences. Best of luck in the prize draw, and we look forward to providing you with more exciting opportunities in the future!
+
+            MemoryBook Team`;
+
+            // E-posta gönder
+            await transporter.sendMail({
+                from: 'ebo.memorybook@gmail.com', // Gönderici e-posta adresi
+                to: winner.mailadress, // Kazananın e-posta adresi
+                subject: 'MemoryBook - Hotel Review Promotion', // E-posta konusu
+                text: mailContent // Metin tabanlı e-posta içeriği
+            });
+
             return res.status(201).json({
                 status: 201,
                 success: true,
@@ -120,7 +168,7 @@ const update_raffleMailings = asynchandler(async (req, res) => {
             message: "Hatali istek"
         });
     }
-    else{
+    else {
         var bodyData = req.body;
 
         if (!bodyData) {
@@ -139,7 +187,7 @@ const update_raffleMailings = asynchandler(async (req, res) => {
             });
         }
     }
-   
+
 
 
 
@@ -149,7 +197,7 @@ const update_raffleMailings = asynchandler(async (req, res) => {
 // yorum yapmaya devam edildikçe çekilişteki şansı arttırılıyor
 const plusRaffle = asynchandler(async (req, res) => {
     const raffleMailingsControl = await _raffle.findById(req.params.id);
-    
+
     if (!raffleMailingsControl) {
         return res.status(400).json({
             status: 400,
@@ -174,14 +222,7 @@ const plusRaffle = asynchandler(async (req, res) => {
     });
 });
 
-// Nodemailer transporter oluştur
-const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-        user: 'ebo.memorybook@gmail.com', // E-posta adresiniz
-        pass: 'okdf gtke fvtf sbih' // E-posta şifreniz
-    }
-});
+
 
 const raffle = asynchandler(async (req, res) => {
     try {
@@ -215,31 +256,11 @@ const raffle = asynchandler(async (req, res) => {
         const hotel = await _hotels.findById(winner.hotelid);
 
         // Kazanan mail adresine gönderilecek e-posta içeriği
-        const randomCode = generateRandomCode(); // Rastgele kod oluştur
+        
         const mailContent = `
             Hello ${winner.fullname},
 
-            Greetings from MemoryBook!
-
-            Your entry into our hotel review promotion was successful. Your valuable review for the hotel has been received through our app, and we're excited to share the details.
-
-            Your Entry Details:
-            Hotel : ${hotel.hotelName}
-            Your Unique Code: ${randomCode}
-
-            How Does the Entry Work?
-            By submitting your review through our app, you've earned a ticket for the chance to win a "2 People Holiday for a Week" at the end of the season. The more reviews you make, the higher your chances of winning this exciting prize!
-
-            Prize Pool Selection Period:
-            The prize pool selection period occurs at the end of each season. At this time, a random code will be selected, and the lucky participant associated with that code will be announced as the winner of the holiday getaway.
-
-            We want to thank you for your contribution to improving hotel experiences through your thoughtful reviews.
-
-            Should you have any questions or encounter any issues, please don't hesitate to reach out to us. Our dedicated support team is here to assist you.
-
-            Thank you for choosing MemoryBook for your hotel review experiences. Best of luck in the prize draw, and we look forward to providing you with more exciting opportunities in the future!
-
-            MemoryBook Team`;
+            You won your draw in ${winner.randomCode} draws. Please contact hotel ${hotel.hotelName} for information.`;
 
         // E-posta gönder
         await transporter.sendMail({
@@ -312,7 +333,7 @@ function generateRandomCode() {
     return randomCode;
 }
 
- 
+
 module.exports =
 {
     createNewMail, // çekiliş için mail adresi kaydet
