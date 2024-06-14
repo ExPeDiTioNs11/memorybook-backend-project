@@ -4,6 +4,7 @@ const { createNewMail,
     update_raffleMailings,
     plusRaffle,
     raffle,
+    raffleRestorant,
     getByHotelId,
     get_winner_mailings
 } = require('../controllers/raffle.controller');
@@ -17,6 +18,6 @@ router.get('/get-winner-mailings', userControl, get_winner_mailings); // kazanan
 router.route('/plus-raffle/:id').get(userControl, plusRaffle); // email in kazanma şansını arttır
 router.route('/hotel-raffle-mailings/:hotelid').get(userControl, getByHotelId); //hotele kaydedilmiş çekiliş mailleri
 router.get('/raffle', userControl, raffle); // çekiliş yap
-
+router.get('/restorant-raffle', raffleRestorant) // restorant için çekiliş
 module.exports = router
 
